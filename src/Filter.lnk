@@ -1,0 +1,8 @@
+FROM LIB:c.o "Filter.o"+"user.o"+"messagebase.o"
+TO "Filter.060"
+LIB LIB:sc.lib LIB:amiga.lib
+SMALLCODE
+SMALLDATA
+VERBOSE
+DEFINE @__chkabort=@__dummy
+

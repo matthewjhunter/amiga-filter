@@ -1,0 +1,36 @@
+Short: Filters email by configurable headers (1.5)
+Version: 1.5
+Requires: OS 2.04 and a filesystem supporting filechange notification
+Uploader: mhunter@andrew.cmu.edu (Matthew Hunter)
+Author: mhunter@andrew.cmu.edu (Matthew Hunter)
+Type: comm/mail
+Replaces: filter.lha
+
+News: Because the development of anything worth releasing beyond 141 has
+		taken so long, I decided to go ahead and release this version,
+		which is basically collected bugfixes and a few minor improvements.
+		Later versions are still in flux, but *will* happen eventually.
+
+History:
+Filter v1.0: First public release.
+		 v1.0a: Fixed a bug in the .guide file
+		 v1.1: Added a quick and dirty DELAY option.  Not released.
+		 v1.2: Not released.
+		 v1.3: Public release:
+				 * Improved speed significantly
+				 * Added delete, forward, command capability
+				 * Added proper command-line options, including DELAY
+				 * Added Workbench startup code (inc. tooltype options)
+				 * Increased code size slightly ;)
+				 * Added installer script
+		 v1.4: Public Release (primarily bugfixes)
+				 * Fixed enforcer hit
+				 * Now it -really- searches on the Subject: header
+				 * GUI config editor, courtesy of "TTT"
+		 v1.41:Public Bugfix Release
+				 * Got an 060, nailed remaining enforcer hits
+		 v1.5: Incremental Release (collected bugfixes, very minor features)
+				 * Fixed several possible enforcer hits
+				 * Searches Newsgroups: header (by request)
+				 * Increased mailbox parsing intelligence slightly
+       v1.5a: Released source.  Development of this version dead.

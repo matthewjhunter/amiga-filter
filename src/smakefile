@@ -1,0 +1,27 @@
+filter: filter.o user.o messagebase.o smakefile
+	@sc LINK filter.o user.o messagebase.o TO Filter
+
+user.o: user.c user.h
+	@sc user.c NOLINK DEF=AMIGA DEF=DEBUG
+
+messagebase.o: messagebase.c messagebase.h
+	@sc messagebase.c NOLINK DEF=AMIGA DEF=DEBUG
+
+filter.o: filter.c filter.h
+	@sc filter.c NOLINK DEF=AMIGA
+
+clean:
+	@delete *.o
+
+RELEASE:
+	@delete *.o
+	@sc OPTIMIZE NOLINK CPU=68000 DEF=AMIGA user.c messagebase.c filter.c
+	@sc LINK filter.o user.o messagebase.o TO Filter.000
+	@delete *.o
+	@sc OPTIMIZE NOLINK CPU=68020 DEF=AMIGA user.c messagebase.c filter.c
+	@sc LINK filter.o user.o messagebase.o TO Filter.020
+	@delete *.o
+	@sc OPTIMIZE NOLINK CPU=68060 DEF=AMIGA user.c messagebase.c filter.c
+	@sc LINK filter.o user.o messagebase.o TO Filter.060
+
+

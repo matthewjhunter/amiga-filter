@@ -1,0 +1,107 @@
+; This is test of many of the features of the Installer
+; Prints out debugging info if run from CLI
+
+(set #installdir
+   (askdir
+      (help "Choose where the program files should go.")
+      (prompt "Where should I install Filter?  (A directory will be created)")
+      (default "AmiTCP:")
+      (newpath)
+   )
+)
+
+(set #installdir (tackon #installdir "Filter"))
+
+(makedir #installdir
+   (prompt "Making directory.")
+   (help @makedir-help)
+)
+
+(set @default-dest #installdir)
+
+(copyfiles
+   (prompt "Copying the proper version for your CPU.")
+   (help @copyfiles-help)
+   (if (patmatch "68000|68010" (database "cpu")) (source "Filter.000") (source "Filter.020"))
+   (newname "Filter")
+   (dest #installdir)
+   (files)
+   (confirm)
+   (infos)
+)
+
+(copyfiles
+   (prompt "Copying the support files.")
+   (help @copyfiles-help)
+   (choices "Docs/Filter.guide" "Docs/Filter.readme" "Prefs/.filterrc" "Prefs/FilterPrefs")
+   (source "")
+   (dest #installdir)
+   (files)
+   (confirm)
+   (infos)
+)
+
+(set #configfile
+   (askfile
+      (help "Pick your config file to be added to the icon tooltype.  If Filter is run without this parameter, it will look in the current directory, your HOME: directory, a uulib: assign, and other places.  It tries real hard.")
+      (prompt "Select your desired config file.")
+      (default (tackon #installdir ".filterrc"))
+   )
+)
+
+(set #inbox
+   (askfile
+      (help "Your selected incoming mailbox file will be added to the icon tooltype.  This is the file Filter watches for changes and expects to find incoming mail in.")
+      (prompt "Select your incoming mailbox file.")
+      (default "UUMail:")
+   )
+)
+
+(set #default
+   (askfile
+      (help "Your selected default mailbox file will be added to the icon tooltype.  This is where email that doesn't match any patterns will be placed.")
+      (prompt "Select your default mailbox file.")
+      (default "HOME:Mail")
+   )
+)
+
+(set #defaultdir
+   (askdir
+      (help "Pick your default mailbox diretcory to be added to the icon tooltype.")
+      (prompt "Select your default mailbox directory.")
+      (default "HOME:Mail")
+   )
+)
+
+(set #once
+   (askbool
+      (prompt "Do you want Filter to run in the background?")
+      (help "If you select Background, Filter will use the AmigaDOS notify function to wait for changes to the default mailbox file, and activate whenever the file is changed.  Control-C will cause it to exit.  If you select Once, you will have to run filter manually whenever you want to filter your mailbox.")
+      (default 1)
+      (choices "Background" "Once")
+   )
+)
+
+(set #delay
+   (askstring
+      (prompt "How long should Filter wait after your inbox is first changed? (see help)")
+      (help "Filter will try to avoid conflicts, but it's best to set this to a reasonable value anyway.  Especially when transmission times are long.  3 is usually ok for an ethernet connection, and 10-30 for a modem connection.")
+      (default "30")
+   )
+)
+
+(tooltype 
+   (prompt "Setting icon tooltypes to refer to your selections.")
+   (help "Setting tooltype parameters")
+   (settooltype "CONFIG" #configfile)
+   (settooltype "INBOX" #inbox)
+   (settooltype "DEFAULT" #default)
+   (settooltype "DEFAULTDIR" #defaultdir)
+   (settooltype "DELAY" #delay)
+   (if #once (settooltype "ONCE" "FALSE") (settooltype "ONCE" "TRUE"))
+   (dest (tackon #installdir "Filter"))
+   (noposition)
+   (confirm)
+)
+
+
