@@ -1,6 +1,8 @@
 # Filter for the Amiga
 
-Filter was the first piece of software I wrote and released: a mail filter for AmigaOS that watched a mailbox file with DOS file-change notification and sorted incoming messages into other files by matching headers (From:, To:, Sender:, Subject:, Newsgroups:). Matching messages could also be deleted, forwarded, or handed to a command. It was distributed on Aminet under comm/mail from 1996 to 1999.
+Filter is a mail filter for AmigaOS. It watched a mailbox file with DOS file-change notification and sorted incoming messages into other files by matching headers (From:, To:, Sender:, Subject:, Newsgroups:). Matching messages could also be deleted, forwarded, or handed to a command. It was distributed on Aminet under comm/mail from 1996 to 1999.
+
+It was the first real program I wrote, and my first open-source release. I started it in high school, at about 14, partly as a learning exercise; the first public release came a few years later.
 
 This repository is an archive. Its first commit is the unmodified contents of `Filter15a.lzh`, the final 1.5a release from January 1999, which was also the first release to include source. Nothing here has been updated, and there is no plan to.
 
