@@ -16,7 +16,7 @@ This repository is an archive. Its first commit is the unmodified contents of `F
 - `*.info` -- Workbench icons
 - `*~` -- editor backup files that were in the original archive
 
-Requires AmigaOS 2.04 or later. The 1.5a release was packaged on a Linux machine and was never verified to compile in that form.
+Requires AmigaOS 2.04 or later. The 1.5a release was packaged on a Linux machine and was never verified to compile in that form. It probably doesn't: `src/Filter.c` contains `strncpy(emsg.Reply-To, buff, 256)`, which C parses as a subtraction, while the struct field in `filter.h` is `ReplyTo`. The source files are dated November 1998, after the February 1998 binaries were built, so the binaries came from an earlier version of the code. This hasn't been tested, since it would need SAS/C.
 
 ## License
 
