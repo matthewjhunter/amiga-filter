@@ -34,3 +34,9 @@ Filter v1.0: First public release.
 				 * Searches Newsgroups: header (by request)
 				 * Increased mailbox parsing intelligence slightly
        v1.5a: Released source.  Development of this version dead.
+       v1.5b: Bugfix release (2026), made from the archived source
+				 * Mail delivered while filtering is no longer lost
+				 * Fixed buffer overflows, memory leaks, and heavy stack use
+				 * Messages are copied whole, so folders stay valid mailboxes
+				 * Newsgroups: no longer carries over between messages
+				 * Source compiles again (with gcc; SAS/C not tested)
