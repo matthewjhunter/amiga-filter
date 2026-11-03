@@ -41,6 +41,26 @@ FILE *mailbox,*config;
 
 BOOL isMailStartLine(char *line);
 
+// Copy a header line into a fixed-size field, always terminated.
+static void SetField(char *field, size_t size, const char *line)
+{
+   strncpy(field, line, size - 1);
+   field[size - 1] = 0;
+}
+
+// Mark every header field of a message as not seen yet.
+static void ResetEmail(struct Email *msg)
+{
+   strcpy(msg->From, "None");
+   strcpy(msg->Sender, "None");
+   strcpy(msg->CC, "None");
+   strcpy(msg->To, "None");
+   strcpy(msg->Subject, "None");
+   strcpy(msg->Newsgroups, "None");
+   strcpy(msg->Dest, "None");
+   strcpy(msg->ReplyTo, "None");
+}
+
 // Strip a trailing newline.  Returns TRUE if the line had one, FALSE if
 // fgets() stopped early because the line was too long for the buffer.
 static BOOL chomp(char *s)
@@ -263,13 +283,7 @@ void FilterMail(void)
       fprintf(stderr,"Could not open mailbox.\n");
       exit(20);
    }
-   strcpy(emsg.From, "None");
-   strcpy(emsg.To, "None");
-   strcpy(emsg.CC, "None");
-   strcpy(emsg.Sender, "None");
-   strcpy(emsg.Subject, "None");
-   strcpy(emsg.Dest, "None");
-   strcpy(emsg.ReplyTo, "None");
+   ResetEmail(&emsg);
 
    emsg.Start = 0;
    emsg.EndHead = 0;
@@ -330,13 +344,7 @@ void FilterMail(void)
          {
             strcpy(emsg.Dest, FindDest(emsg,Default,first));
             TakeAction(emsg,DefDir);
-            strcpy(emsg.Sender, "None");
-            strcpy(emsg.From, "None");
-            strcpy(emsg.To, "None");
-            strcpy(emsg.CC, "None");
-            strcpy(emsg.Subject, "None");
-            strcpy(emsg.Dest, "None");
-            strcpy(emsg.ReplyTo, "None");
+            ResetEmail(&emsg);
          }
          msgc++;
          emsg.Start = temp;
@@ -349,31 +357,31 @@ void FilterMail(void)
       {
          if (strncmp(buff, "Sender: ", 8) == 0)
          {
-            strncpy(emsg.Sender, buff, 256);
+            SetField(emsg.Sender, sizeof(emsg.Sender), buff);
          } else
          if (strncmp(buff, "From: ", 6) == 0)
          {
-            strncpy(emsg.From, buff, 256);
+            SetField(emsg.From, sizeof(emsg.From), buff);
          } else
          if (strncmp(buff, "To: ", 4) == 0)
          {
-            strncpy(emsg.To, buff, 256);
+            SetField(emsg.To, sizeof(emsg.To), buff);
          } else
          if (strnicmp(buff, "cc: ", 4) == 0)
          {
-            strncpy(emsg.CC, buff, 256);
+            SetField(emsg.CC, sizeof(emsg.CC), buff);
          } else
          if (strnicmp(buff, "Subject: ", 9) == 0)
          {
-            strncpy(emsg.Subject, buff, 256);
+            SetField(emsg.Subject, sizeof(emsg.Subject), buff);
          } else
-         if (strnicmp(buff, "Newsgroups: ", 9) == 0)
+         if (strnicmp(buff, "Newsgroups: ", 12) == 0)
          {
-            strncpy(emsg.Newsgroups, buff, 256);
+            SetField(emsg.Newsgroups, sizeof(emsg.Newsgroups), buff);
          } else
-         if (strnicmp(buff, "Reply-To: ", 9) == 0)
+         if (strnicmp(buff, "Reply-To: ", 10) == 0)
          {
-            strncpy(emsg.ReplyTo, buff, 256);
+            SetField(emsg.ReplyTo, sizeof(emsg.ReplyTo), buff);
          } else
          if (strlen(buff) == 0)
          {
