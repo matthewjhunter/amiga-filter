@@ -414,7 +414,7 @@ void MoveMsg(struct Email msg, char *DDir)
 {
    /* Transfer msgs from inbox to Dest */
    int counter;
-   char outname[80];
+   char outname[255+256];  // DefDir plus Dest, both bounded
    long int msglength, temp;
    FILE *outfile;
 
@@ -431,7 +431,8 @@ void MoveMsg(struct Email msg, char *DDir)
 
    if ((strstr(msg.Dest, ":") == NULL) && (strstr(msg.Dest, "/") == NULL))
    {
-      strins(strcpy(outname, msg.Dest), DDir);
+      strcpy(outname, DDir);
+      strcat(outname, msg.Dest);
    } else strcpy(outname, msg.Dest);
    if ((outfile = fopen(outname, "a")) == NULL)
    {
