@@ -82,6 +82,7 @@ void main(int argc, char *argv[])
    long delay = DEFAULTDELAY;
    // long *delayptr = NULL;
    BOOL once,FromWB;
+   BOOL pending = TRUE;   // check for mail already waiting at startup
    char User[255+1];
 
    // Find HOME directory
@@ -239,7 +240,8 @@ void main(int argc, char *argv[])
    } else do
    {
       BNotify();
-      signals = Wait((1L << signum) | SIGBREAKF_CTRL_C);
+      if (pending) signals = (1L << signum);
+      else signals = Wait((1L << signum) | SIGBREAKF_CTRL_C);
       if (signals & (1L << signum))
       {
          if (!FromWB) printf("Received notify.\n");
@@ -247,7 +249,7 @@ void main(int argc, char *argv[])
          FreeSignal(signum);
          FreeVec(note);
          Delay(delay * 50);
-         FilterMail();
+         pending = FilterMail();
       } else
       if (signals & SIGBREAKF_CTRL_C)
       {
@@ -260,27 +262,93 @@ void main(int argc, char *argv[])
    } while (TRUE);
 }
 
-void FilterMail(void)
+// Size of a file in bytes, or 0 if it cannot be opened.
+static long FileSize(char *name)
+{
+   FILE *f;
+   long size;
+
+   if ((f = fopen(name, "r")) == NULL) return(0);
+   fseek(f, 0, SEEK_END);
+   size = ftell(f);
+   fclose(f);
+   return(size);
+}
+
+static BOOL Exists(char *name)
+{
+   BPTR lock;
+
+   if ((lock = Lock(name, ACCESS_READ)) == 0) return(FALSE);
+   UnLock(lock);
+   return(TRUE);
+}
+
+static void ProcessMailbox(char *name);
+
+// Move the mailbox aside to a work file and filter that.  Mail delivered
+// while filtering goes into a fresh mailbox rather than being lost when
+// the old one is emptied.  A work file left by a crash is filtered first;
+// its messages may be delivered twice, but none are lost.
+//
+// Returns TRUE if new mail is already waiting when it finishes.
+BOOL FilterMail(void)
 {
    BPTR file = 0;
-   long int checkfile;
    int count;
-   BOOL whole, prevwhole = TRUE;
-   struct ConfigList *first;
+   char WorkName[255+8];
 
+   strcpy(WorkName, MBoxName);
+   strcat(WorkName, ".filter");
+
+   if (Exists(WorkName))
+   {
+      ProcessMailbox(WorkName);
+      if (Exists(WorkName)) return(FALSE);
+   }
+
+   if (FileSize(MBoxName) <= 2) return(FALSE);
+
+   // Wait until no one else has the mailbox open
    for (count = 0; count <= 100; count++)
    {
       if ((file = Lock(MBoxName, ACCESS_WRITE)) != 0) break;
       Delay(300);
-      if (count == 100) return;
+      if (count == 100) return(FALSE);
    }
 
-   if (file == 0) return;
+   if (file == 0) return(FALSE);
    UnLock(file);
 
-   if ((mailbox = fopen(MBoxName, "r")) == NULL)
+   if (!Rename(MBoxName, WorkName))
    {
-      fprintf(stderr,"Could not open mailbox.\n");
+      fprintf(stderr, "Could not rename %s to %s.\n", MBoxName, WorkName);
+      return(FALSE);
+   }
+
+   // Leave an empty mailbox in its place.  MODE_READWRITE creates it
+   // without truncating, in case a delivery has already started one.
+   if ((file = Open(MBoxName, MODE_READWRITE)) != 0) Close(file);
+
+   ProcessMailbox(WorkName);
+   return((FileSize(MBoxName) > 2) && !Exists(WorkName));
+}
+
+// Filter every message in the named mailbox file, then delete it.
+static void ProcessMailbox(char *name)
+{
+   BOOL whole, prevwhole = TRUE;
+   struct ConfigList *first;
+
+   if (FileSize(name) <= 2)
+   {
+      DeleteFile(name);
+      return;
+   }
+
+   if ((mailbox = fopen(name, "r")) == NULL)
+   {
+      fprintf(stderr,"Could not open %s.\n", name);
       exit(20);
    }
    ResetEmail(&emsg);
@@ -288,12 +356,6 @@ void FilterMail(void)
    emsg.Start = 0;
    emsg.EndHead = 0;
    emsg.End = 0;
-
-   fseek(mailbox, 0, SEEK_END);
-   checkfile = ftell(mailbox);
-   fseek(mailbox, 0, SEEK_SET);
-
-   if ((checkfile - ftell(mailbox)) <= 2) return;
 
    if ((first = LoadConfigList(CFGName)) == NULL)
    {
@@ -401,13 +463,11 @@ void FilterMail(void)
    TakeAction(emsg,DefDir);
    fclose(mailbox);
 // if (!FromWB) printf("Processed %d messages.\n", msgc);
-   if ((mailbox = fopen(MBoxName, "w")) == NULL)
-   {
-      fprintf(stderr, "Failed to overwrite mailbox file.\n");
-      exit(20);
-   }
-   fclose(mailbox);
    FreeConfigList(first);
+   if (!DeleteFile(name))
+   {
+      fprintf(stderr, "Could not delete %s; its messages will be filtered again.\n", name);
+   }
 }
 
 void MoveMsg(struct Email msg, char *DDir)

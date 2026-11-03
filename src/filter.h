@@ -29,7 +29,7 @@ void cleanbuff(char *);
 char *CleanUp(char *);
 void MoveMsg(struct Email, char *);
 char *FindDest(struct Email, char *, struct ConfigList *);
-void FilterMail(void);
+BOOL FilterMail(void);
 void BNotify(void);
 struct ConfigList *LoadConfigList(char *filename);
 BOOL SaveConfigList(char *filename, struct ConfigList *);
