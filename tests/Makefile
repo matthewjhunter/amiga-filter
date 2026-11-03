@@ -13,8 +13,10 @@ LDFLAGS := $(SAN)
 OBJS := Filter.o user.o messagebase.o amiga_stubs.o test_filter.o
 
 .PHONY: test cross clean
+# Each test gets a directory under tmp/; failed tests leave theirs behind.
 test: test_filter
-	ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ./test_filter
+	mkdir -p tmp
+	TMPDIR=$(CURDIR)/tmp ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ./test_filter
 
 test_filter: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)
@@ -36,3 +38,4 @@ cross:
 
 clean:
 	rm -f $(OBJS) test_filter
+	rm -rf tmp build
