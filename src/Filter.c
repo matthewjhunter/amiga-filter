@@ -17,7 +17,7 @@
 #include "user.h"
 
 #include "filter.h"
-#include "filter_rev.h"
+#include "Filter_rev.h"
 
 #define DEFAULTDELAY 3
 
@@ -110,7 +110,7 @@ void main(int argc, char *argv[])
       printf("Arguments: %s\n", wb_startup->sm_ArgList->wa_Name);
 #endif
 
-      if (NULL != wb_arg->wa_Lock)
+      if (0 != wb_arg->wa_Lock)
       {
          struct DiskObject *dobj;
          char **toolarray;
@@ -155,7 +155,7 @@ void main(int argc, char *argv[])
       // CLI startup code
       struct RDArgs *rdargs;
       char Template[] = {"DELAY/N,INBOX/K,CONFIG/K,DEFAULT/K,DEFAULTDIR,ONCE/S"};
-      long args[6] = {NULL,NULL,NULL,NULL,NULL,NULL};
+      long args[6] = {0,0,0,0,0,0};
 
       FromWB = FALSE;
 #ifdef DEBUG
@@ -170,15 +170,15 @@ void main(int argc, char *argv[])
          FreeArgs(rdargs);
          exit(20);
       }
-      if (args[0] != NULL)
+      if (args[0] != 0)
       {
          delay = *(long *)args[0];
       }
-      if (args[1] != NULL) strcpy(MBoxName, (char *)args[1]);
-      if (args[2] != NULL) strcpy(CFGName, (char *)args[2]);
-      if (args[3] != NULL) strcpy(Default, (char *)args[3]);
-      if (args[4] != NULL) strcpy(DefDir, (char *)args[4]);
-      if (args[5] != NULL) once = TRUE;
+      if (args[1] != 0) strcpy(MBoxName, (char *)args[1]);
+      if (args[2] != 0) strcpy(CFGName, (char *)args[2]);
+      if (args[3] != 0) strcpy(Default, (char *)args[3]);
+      if (args[4] != 0) strcpy(DefDir, (char *)args[4]);
+      if (args[5] != 0) once = TRUE;
       FreeArgs(rdargs);
    }
 
@@ -228,7 +228,7 @@ void main(int argc, char *argv[])
 
 void FilterMail(void)
 {
-   BPTR file = NULL;
+   BPTR file = 0;
    long int checkfile;
    int count;
    struct ConfigList *first;
@@ -348,7 +348,7 @@ void FilterMail(void)
          } else
          if (strnicmp(buff, "Reply-To: ", 9) == 0)
          {
-            strncpy(emsg.Reply-To, buff, 256);
+            strncpy(emsg.ReplyTo, buff, 256);
          } else
          if (strlen(buff) == 0)
          {
@@ -488,7 +488,7 @@ void TakeAction(struct Email msg, char *DefDir)
       str = &msg.Dest[8];
       strcpy(NewDest, str);
 
-      if ((temp1 = Open(TempName, MODE_NEWFILE)) != NULL)
+      if ((temp1 = Open(TempName, MODE_NEWFILE)) != 0)
       {
          char buff[500];
          FPrintf(temp1, "To: %s\n", NewDest);
@@ -498,7 +498,7 @@ void TakeAction(struct Email msg, char *DefDir)
          mktemp(TempTwoName);
          strcpy(msg.Dest, TempTwoName);
          MoveMsg(msg,DefDir);
-         if ((temp2 = Open(TempTwoName, MODE_OLDFILE)) != NULL)
+         if ((temp2 = Open(TempTwoName, MODE_OLDFILE)) != 0)
          {
             while(FGets(temp2,buff,500) != NULL)
             {
@@ -593,8 +593,8 @@ struct ConfigList *LoadConfigList(char *CFGName)
    struct ConfigList *curr,*first;
 
    first = malloc(sizeof(struct ConfigList));
-   first->Pattern[0] = NULL;
-   first->Action[0] = NULL;
+   first->Pattern[0] = 0;
+   first->Action[0] = 0;
    first->next = NULL;
    curr = first;
 
@@ -605,14 +605,14 @@ struct ConfigList *LoadConfigList(char *CFGName)
          cleanbuff(buff);
          if (strlen(buff) > 1)
          {
-            if (curr->Pattern[0] == NULL)
+            if (curr->Pattern[0] == 0)
             {
 #ifdef DEBUG
                printf("Loaded pattern: %s\n", buff);
 #endif
                strcpy(curr->Pattern, buff);
             }
-            else if (curr->Action[0] == NULL)
+            else if (curr->Action[0] == 0)
             {
 #ifdef DEBUG
                printf("Loaded action: %s\n", buff);
@@ -623,8 +623,8 @@ struct ConfigList *LoadConfigList(char *CFGName)
             {
                curr->next = malloc(sizeof(struct ConfigList));
                curr = curr->next;
-               curr->Pattern[0] = NULL;
-               curr->Action[0] = NULL;
+               curr->Pattern[0] = 0;
+               curr->Action[0] = 0;
                curr->next = NULL;
                strcpy(curr->Pattern, buff);
             }

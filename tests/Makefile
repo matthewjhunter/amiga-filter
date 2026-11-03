@@ -7,7 +7,7 @@
 CC      ?= gcc
 SRC     := ../src
 SAN     := -fsanitize=address,undefined -fno-omit-frame-pointer
-CFLAGS  := -std=gnu99 -g -O1 $(SAN) -Iinclude -I$(SRC) -D_GNU_SOURCE -Dmain=filter_main
+CFLAGS  := -std=gnu99 -g -O1 $(SAN) -Iinclude -I$(SRC)
 LDFLAGS := $(SAN)
 
 OBJS := Filter.o user.o messagebase.o amiga_stubs.o test_filter.o
@@ -19,8 +19,9 @@ test: test_filter
 test_filter: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)
 
+# Filter's own main() is renamed so the test runner can supply one.
 Filter.o: $(SRC)/Filter.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -Dmain=filter_main -c -o $@ $<
 user.o: $(SRC)/user.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 messagebase.o: $(SRC)/messagebase.c
@@ -28,7 +29,7 @@ messagebase.o: $(SRC)/messagebase.c
 amiga_stubs.o: amiga_stubs.c include/amiga_stubs.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 test_filter.o: test_filter.c include/amiga_stubs.h $(SRC)/filter.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -Wno-format-truncation -c -o $@ $<
 
 cross:
 	./cross-build.sh
