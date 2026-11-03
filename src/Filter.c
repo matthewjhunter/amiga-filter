@@ -25,8 +25,9 @@
 // int CXBRK(void) { return(0); }
 // int chkabort(void) { return(0); }
 
-// Version string
-const static char VersTag[] = VERSTAG;
+// Version string for the Version command.  Not static, so the
+// compiler cannot discard it as unused.
+const char VersTag[] = VERSTAG;
 
 // Minimum stack size; the startup code enlarges a smaller one
 long __stack = 16384;
@@ -84,7 +85,7 @@ void main(int argc, char *argv[])
 {
    long delay = DEFAULTDELAY;
    // long *delayptr = NULL;
-   BOOL once,FromWB;
+   BOOL once,FromWB = FALSE;
    BOOL pending = TRUE;   // check for mail already waiting at startup
    char User[255+1];
 
@@ -124,7 +125,7 @@ void main(int argc, char *argv[])
    printf("Incoming  Mailbox: %s\n", MBoxName);
    printf("Default   Mailbox: %s\n", Default);
    printf("Default   MailDir: %s\n", DefDir);
-   printf("Delay time (secs): %d\n", delay);
+   printf("Delay time (secs): %ld\n", delay);
    if (once) printf("Run only once.\n");
    else printf("Install in RAM.\n");
 #endif
@@ -161,7 +162,7 @@ void main(int argc, char *argv[])
             toolarray = (char **)dobj->do_ToolTypes;
 
             if (FindToolType(toolarray,"ONCE") != NULL) once = TRUE;
-            if (string = (char *)FindToolType(toolarray,"DELAY")) sscanf(string, "%d", &delay);
+            if (string = (char *)FindToolType(toolarray,"DELAY")) sscanf(string, "%ld", &delay);
             if (string = (char *)FindToolType(toolarray,"INBOX")) strcpy(MBoxName, string);
             if (string = (char *)FindToolType(toolarray,"CONFIG")) strcpy(CFGName, string);
             if (string = (char *)FindToolType(toolarray,"DEFAULT")) strcpy(Default, string);
@@ -170,7 +171,7 @@ void main(int argc, char *argv[])
             FreeDiskObject(dobj);
          } else if (!(*wb_arg->wa_Name))
          {
-            printf("Disk or drawer icon??!  Are you nuts?  I can't take that.\n");
+            printf("Disk or drawer icon?\?!  Are you nuts?  I can't take that.\n");
          } else
          {
             printf("No icon... I wonder how you managed that.\n");
@@ -205,7 +206,6 @@ void main(int argc, char *argv[])
       if (rdargs == NULL)
       {
          printf("Error parsing command line!\n");
-         FreeArgs(rdargs);
          exit(20);
       }
       if (args[0] != 0)
@@ -229,7 +229,7 @@ void main(int argc, char *argv[])
    printf("Incoming  Mailbox: %s\n", MBoxName);
    printf("Default   Mailbox: %s\n", Default);
    printf("Default   MailDir: %s\n", DefDir);
-   printf("Delay time (secs): %d\n", delay);
+   printf("Delay time (secs): %ld\n", delay);
    if (once) printf("Run only once.\n");
    else printf("Install in RAM.\n");
 #endif
@@ -487,7 +487,7 @@ void MoveMsg(struct Email *msg, char *dest, char *DDir)
    if (msglength == 0) return;
 
 #ifdef DEBUG
-   printf("The message is %d bytes long.\n",msglength);
+   printf("The message is %ld bytes long.\n",msglength);
    printf("Default directory is: %s\n",DDir);
    printf("Delivering message to: %s\n",dest);
 #endif
