@@ -41,6 +41,20 @@ FILE *mailbox,*config;
 
 BOOL isMailStartLine(char *line);
 
+// Strip a trailing newline.  Returns TRUE if the line had one, FALSE if
+// fgets() stopped early because the line was too long for the buffer.
+static BOOL chomp(char *s)
+{
+   size_t n = strlen(s);
+
+   if ((n > 0) && (s[n-1] == '\n'))
+   {
+      s[n-1] = 0;
+      return(TRUE);
+   }
+   return(FALSE);
+}
+
 
 // Start notification and intiatialize variables
 void main(int argc, char *argv[])
@@ -231,6 +245,7 @@ void FilterMail(void)
    BPTR file = 0;
    long int checkfile;
    int count;
+   BOOL whole, prevwhole = TRUE;
    struct ConfigList *first;
 
    for (count = 0; count <= 100; count++)
@@ -291,10 +306,20 @@ void FilterMail(void)
    length = 0;
    InHeader = FALSE;
 
-   while (!feof(mailbox))
+   for (;;)
    {
       temp = ftell(mailbox);
-      fgets(buff, 499, mailbox); buff[strlen(buff)-1] = 0;
+      if (fgets(buff, sizeof(buff), mailbox) == NULL) break;
+      whole = chomp(buff);
+      if (!prevwhole)
+      {
+         // Rest of an over-long line: not a header or a message start
+         prevwhole = whole;
+         length = 1;
+         emsg.End = ftell(mailbox);
+         continue;
+      }
+      prevwhole = whole;
 
 #ifdef DEBUG
       puts(buff);
@@ -711,11 +736,15 @@ void ShowConfigList(struct ConfigList *first)
    }
 }
 
-// Removes comments and the EOL character
+// Removes the EOL character, comments, and trailing blanks
 void cleanbuff(char *buff)
 {
    char *temp;
-   temp = strstr(buff, ";");
+   size_t n;
+
+   chomp(buff);
+   temp = strchr(buff, ';');
    if (temp != NULL) temp[0] = 0;
-   buff[strlen(buff) - 1] = 0;
+   n = strlen(buff);
+   while ((n > 0) && ((buff[n-1] == ' ') || (buff[n-1] == '\t'))) buff[--n] = 0;
 }
