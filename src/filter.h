@@ -10,7 +10,7 @@ struct Email
    char To[256];
    char Subject[256];
    char Newsgroups[256];
-   char Dest[256];
+   char Dest[300];   // holds a ConfigList Action
    char ReplyTo[256];
    long int Start,EndHead,End;
 };
@@ -22,13 +22,13 @@ struct ConfigList
    struct ConfigList *next;
 };
 
-void TakeAction(struct Email, char *);
+void TakeAction(struct Email *, char *);
 void FreeConfigList(struct ConfigList *);
 void ShowConfigList(struct ConfigList *);
 void cleanbuff(char *);
 char *CleanUp(char *);
-void MoveMsg(struct Email, char *);
-char *FindDest(struct Email, char *, struct ConfigList *);
+void MoveMsg(struct Email *, char *, char *);
+char *FindDest(struct Email *, char *, struct ConfigList *);
 BOOL FilterMail(void);
 void BNotify(void);
 struct ConfigList *LoadConfigList(char *filename);

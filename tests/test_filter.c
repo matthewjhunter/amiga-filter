@@ -240,6 +240,30 @@ static void test_command_gets_message(void)
 	expect_file("got", MSG_B);
 }
 
+/* A COMMAND: action near the 299-character limit must fit the command buffer. */
+static void test_long_command_action(void)
+{
+	char cfg[400], pad[300];
+
+	memset(pad, 'x', 250);
+	pad[250] = 0;
+	snprintf(cfg, sizeof cfg, "Subject: b5#?\nCOMMAND:sh -c 'cp \"$0\" got && : %s'\n", pad);
+	write_file(".filterrc", cfg);
+	write_file("inbox", MSG_A MSG_B);
+	FilterMail();
+	expect_file("got", MSG_B);
+}
+
+/* DELETE drops the message; others still go to the default folder. */
+static void test_delete_action(void)
+{
+	write_file(".filterrc", "Subject: b5#?\nDELETE\n");
+	write_file("inbox", MSG_A MSG_B);
+	FilterMail();
+	expect_file("mail/default", MSG_A);
+	if (access("mail/DELETE", F_OK) == 0) fail("DELETE treated as a folder");
+}
+
 /*
  * Mail delivered while Filter is still working through the mailbox must
  * survive. The COMMAND action appends a message to the inbox while the last
@@ -350,6 +374,8 @@ static const struct test tests[] = {
 	T(test_long_destination_path),
 	T(test_multiple_destinations),
 	T(test_command_gets_message),
+	T(test_long_command_action),
+	T(test_delete_action),
 	T(test_mail_arriving_during_filtering_is_kept),
 	T(test_leftover_work_file_processed),
 	T(test_small_mailbox_closed),

@@ -28,6 +28,9 @@
 // Version string
 const static char VersTag[] = VERSTAG;
 
+// Minimum stack size; the startup code enlarges a smaller one
+long __stack = 16384;
+
 // Variable declarations
 char buff[500], CFGName[255],MBoxName[255], Home[255], Default[255], DefDir[255];
 int msgc, InHeader, length;
@@ -404,8 +407,8 @@ static void ProcessMailbox(char *name)
       {
          if (emsg.EndHead != 0)
          {
-            strcpy(emsg.Dest, FindDest(emsg,Default,first));
-            TakeAction(emsg,DefDir);
+            SetField(emsg.Dest, sizeof(emsg.Dest), FindDest(&emsg,Default,first));
+            TakeAction(&emsg,DefDir);
             ResetEmail(&emsg);
          }
          msgc++;
@@ -459,8 +462,8 @@ static void ProcessMailbox(char *name)
       length = strlen(buff);
       emsg.End = ftell(mailbox);
    }
-   strcpy(emsg.Dest, FindDest(emsg,Default,first));
-   TakeAction(emsg,DefDir);
+   SetField(emsg.Dest, sizeof(emsg.Dest), FindDest(&emsg,Default,first));
+   TakeAction(&emsg,DefDir);
    fclose(mailbox);
 // if (!FromWB) printf("Processed %d messages.\n", msgc);
    FreeConfigList(first);
@@ -470,30 +473,30 @@ static void ProcessMailbox(char *name)
    }
 }
 
-void MoveMsg(struct Email msg, char *DDir)
+void MoveMsg(struct Email *msg, char *dest, char *DDir)
 {
-   /* Transfer msgs from inbox to Dest */
+   /* Transfer msg from inbox to dest */
    int counter;
-   char outname[255+256];  // DefDir plus Dest, both bounded
+   char outname[255+300];  // DefDir plus dest, both bounded
    long int msglength, temp;
    FILE *outfile;
 
    temp = ftell(mailbox);
-   fseek(mailbox, msg.Start, SEEK_SET);
-   msglength = (msg.End - msg.Start);
+   fseek(mailbox, msg->Start, SEEK_SET);
+   msglength = (msg->End - msg->Start);
    if (msglength == 0) return;
 
 #ifdef DEBUG
    printf("The message is %d bytes long.\n",msglength);
    printf("Default directory is: %s\n",DDir);
-   printf("Delivering message to: %s\n",msg.Dest);
+   printf("Delivering message to: %s\n",dest);
 #endif
 
-   if ((strstr(msg.Dest, ":") == NULL) && (strstr(msg.Dest, "/") == NULL))
+   if ((strstr(dest, ":") == NULL) && (strstr(dest, "/") == NULL))
    {
       strcpy(outname, DDir);
-      strcat(outname, msg.Dest);
-   } else strcpy(outname, msg.Dest);
+      strcat(outname, dest);
+   } else strcpy(outname, dest);
    if ((outfile = fopen(outname, "a")) == NULL)
    {
       fprintf(stderr, "Error opening %s, exiting.\n", outname);
@@ -511,15 +514,15 @@ void MoveMsg(struct Email msg, char *DDir)
    fseek(mailbox,temp,SEEK_SET);
 }
 
-char *FindDest(struct Email msg, char *Default, struct ConfigList *first)
+char *FindDest(struct Email *msg, char *Default, struct ConfigList *first)
 {
    struct ConfigList *curr;
 
 #ifdef DEBUG
    printf("Entering message delivery routine.\n");
    printf("Available information:\n");
-   printf("%s\n%s\n%s\n%s\n%s\n",msg.Sender,msg.From,msg.To,msg.CC,msg.Subject);
-   printf("Current Destination: %s\n",msg.Dest);
+   printf("%s\n%s\n%s\n%s\n%s\n",msg->Sender,msg->From,msg->To,msg->CC,msg->Subject);
+   printf("Current Destination: %s\n",msg->Dest);
 #endif
    for (curr = first; (curr != NULL); curr = curr->next)
    {
@@ -534,29 +537,29 @@ char *FindDest(struct Email msg, char *Default, struct ConfigList *first)
          fprintf(stderr, "Pattern parse failure in filter.cfg\n");
          exit(20);
       }
-      if (strncmp(msg.Dest,"None",4) == 0)
+      if (strncmp(msg->Dest,"None",4) == 0)
       {
-         if (MatchPatternNoCase(tokbuf, msg.Sender))
+         if (MatchPatternNoCase(tokbuf, msg->Sender))
          {
             return(curr->Action);
          }
-         if (MatchPatternNoCase(tokbuf, msg.From))
+         if (MatchPatternNoCase(tokbuf, msg->From))
          {
             return(curr->Action);
          }
-         if (MatchPatternNoCase(tokbuf, msg.To))
+         if (MatchPatternNoCase(tokbuf, msg->To))
          {
             return(curr->Action);
          }
-         if (MatchPatternNoCase(tokbuf, msg.CC))
+         if (MatchPatternNoCase(tokbuf, msg->CC))
          {
             return(curr->Action);
          }
-         if (MatchPatternNoCase(tokbuf, msg.Subject))
+         if (MatchPatternNoCase(tokbuf, msg->Subject))
          {
             return(curr->Action);
          }
-         if (MatchPatternNoCase(tokbuf, msg.Newsgroups))
+         if (MatchPatternNoCase(tokbuf, msg->Newsgroups))
          {
             return(curr->Action);
          }
@@ -568,41 +571,40 @@ char *FindDest(struct Email msg, char *Default, struct ConfigList *first)
    return(Default);
 }
 
-void TakeAction(struct Email msg, char *DefDir)
+void TakeAction(struct Email *msg, char *DefDir)
 {
-   if (strncmp(msg.Dest, "DELETE",7) == 0) return;
-   else if (strncmp(msg.Dest, "FORWARD:",8) == 0)
+   char *dest = msg->Dest;
+
+   if (strcmp(dest, "DELETE") == 0) return;
+   else if (strncmp(dest, "FORWARD:",8) == 0)
    {
-      char TempName[255],NewDest[255],TempTwoName[255],Command[255],*str;
+      char TempName[32], TempTwoName[32], Command[32+16], buff[500];
       BPTR temp1,temp2;
 
-      sprintf(TempName, "T:XXXXXXXfilter.temp");
+      strcpy(TempName, "T:XXXXXXXfilter.temp");
       mktemp(TempName);
 
-      str = &msg.Dest[8];
-      strcpy(NewDest, str);
-
-      if ((temp1 = Open(TempName, MODE_NEWFILE)) != 0)
+      if ((temp1 = Open(TempName, MODE_NEWFILE)) == 0)
       {
-         char buff[500];
-         FPrintf(temp1, "To: %s\n", NewDest);
-         FPrintf(temp1, "Subject: Forwarded Message\n\n");
-         FPrintf(temp1, "****************** Forwarded Message follows ********************\n");
-         sprintf(TempTwoName, "T:XXXXXXXfilter.temp");
-         mktemp(TempTwoName);
-         strcpy(msg.Dest, TempTwoName);
-         MoveMsg(msg,DefDir);
-         if ((temp2 = Open(TempTwoName, MODE_OLDFILE)) != 0)
+         fprintf(stderr, "Could not create %s to forward a message.\n", TempName);
+         return;
+      }
+      FPrintf(temp1, "To: %s\n", &dest[8]);
+      FPrintf(temp1, "Subject: Forwarded Message\n\n");
+      FPrintf(temp1, "****************** Forwarded Message follows ********************\n");
+      strcpy(TempTwoName, "T:XXXXXXXfilter.temp");
+      mktemp(TempTwoName);
+      MoveMsg(msg, TempTwoName, DefDir);
+      if ((temp2 = Open(TempTwoName, MODE_OLDFILE)) != 0)
+      {
+         while(FGets(temp2,buff,sizeof(buff)) != NULL)
          {
-            while(FGets(temp2,buff,500) != NULL)
-            {
-               buff[strlen(buff) - 1] = 0;
-               FPrintf(temp1, "> %s\n", buff);
-            }
+            chomp(buff);
+            FPrintf(temp1, "> %s\n", buff);
          }
          Close(temp2);
-         FPrintf(temp1, "\n***************** End of Forwarded Message ***********************\n");
       }
+      FPrintf(temp1, "\n***************** End of Forwarded Message ***********************\n");
       Close(temp1);
       strcpy(Command, "smtppost ");
       strcat(Command, TempName);
@@ -610,40 +612,36 @@ void TakeAction(struct Email msg, char *DefDir)
       DeleteFile(TempName);
       DeleteFile(TempTwoName);
    }
-   else if (strncmp(msg.Dest, "COMMAND:",8) == 0)
+   else if (strncmp(dest, "COMMAND:",8) == 0)
    {
-      char NewDest[255], Command[255], TempName[255], *str;
+      char Command[sizeof(msg->Dest)+32], TempName[32];
 
-      str = &msg.Dest[8];
-      strcpy(NewDest, str);
-      sprintf(TempName, "T:XXXXXXXfilter.temp");
+      strcpy(TempName, "T:XXXXXXXfilter.temp");
       mktemp(TempName);
 
-      strcpy(msg.Dest, TempName);
-      MoveMsg(msg, DefDir);
-      strcpy(Command, NewDest);
+      MoveMsg(msg, TempName, DefDir);
+      strcpy(Command, &dest[8]);
       strcat(Command, " ");
       strcat(Command, TempName);
       system(Command);
       DeleteFile(TempName);
    }
-   else if (strstr(msg.Dest,",") != NULL)
+   else if (strstr(dest,",") != NULL)
    {
-      char *str,*oldstr,NewDest[255];
-      strcpy(NewDest, msg.Dest);
-      str = NewDest;
-      oldstr = NewDest;
+      char *str,*oldstr,List[sizeof(msg->Dest)];
+
+      strcpy(List, dest);
+      str = List;
+      oldstr = List;
       while ((str = strstr(str, ",")) != NULL)
       {
          str[0] = 0;
          str = &str[1];
-         strcpy(msg.Dest, oldstr);
-         MoveMsg(msg, DefDir);
+         MoveMsg(msg, oldstr, DefDir);
          oldstr = str;
       }
-      strcpy(msg.Dest, oldstr);
-      MoveMsg(msg, DefDir);
-   } else MoveMsg(msg, DefDir);
+      MoveMsg(msg, oldstr, DefDir);
+   } else MoveMsg(msg, dest, DefDir);
 }
 
 void BNotify(void)
