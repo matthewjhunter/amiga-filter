@@ -82,7 +82,7 @@ BOOL AddBodyLineAtEnd(MsgIndexType *msg)
 		return(FALSE);
 	}
 	Body = Body->next;
-	sprintf(Body->Line, "%s");
+	Body->Line[0] = 0;
 	Body->next = NULL;
 	return(TRUE);
 }
@@ -160,7 +160,7 @@ BOOL AddHeaderAtEnd(MsgIndexType *msg)
 		return(FALSE);
 	}
 	Head = Head->next;
-	sprintf(Head->Header, "%s");
+	Head->Header[0] = 0;
 	Head->next = NULL;
 
 	return(TRUE);

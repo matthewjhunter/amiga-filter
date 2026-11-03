@@ -8,36 +8,35 @@
 #define DEFAULT_USER "mhunter"
 #define DEFAULT_HOME "Workbench:Internet/usr/mhunter"
 
+// Dest must hold 255+1 bytes.
 char *GetEnvUser(char *Dest)
 {
    char *ptr;
 
    ptr = getenv("USER");
-   if (ptr == NULL) strcpy(Dest, DEFAULT_USER);
-   else strcpy(Dest, ptr);
-   free(ptr);
+   if ((ptr == NULL) || (*ptr == 0)) ptr = DEFAULT_USER;
+   strncpy(Dest, ptr, 255);
+   Dest[255] = 0;
    return(Dest);
 }
 
 // Returns a pointer to the provided string storage space,
 // which now contains the home directory specified in the
-// global environment -- _always_ with a trailing '/'.
+// global environment -- _always_ with a trailing '/' or ':'.
+// Dest must hold 255+1 bytes.
 
 char *GetEnvHomeDir(char *Dest)
 {
    char *ptr;
-   char Home[255+1];
+   size_t n;
 
    ptr = getenv("HOME");
-   if (ptr == NULL) strcpy(Home, DEFAULT_HOME);
-   else strcpy(Home, ptr);
+   if ((ptr == NULL) || (*ptr == 0)) ptr = DEFAULT_HOME;
+   strncpy(Dest, ptr, 254);   // leave room for the '/'
+   Dest[254] = 0;
 
-   if (Home[strlen(Home)-1] != ':')
-   {
-      if (Home[strlen(Home)-1] != '/') strcat(Home, "/");
-   }
-   free(ptr);
-   strcpy(Dest, Home);
+   n = strlen(Dest);
+   if ((Dest[n-1] != ':') && (Dest[n-1] != '/')) strcat(Dest, "/");
    return(Dest);
 }
 
@@ -57,14 +56,17 @@ BOOL AddSig(MsgIndexType *msg, char User[255+1])
 {
    FILE *sig;
    BodyType *Body;
-   char sigfile[255+1], buff[100+1];
+   char sigfile[255+1+10], buff[100+1];
+   size_t n;
 
    GetEnvHomeDir(sigfile);
    strcat(sigfile, ".signature");
 
-   for (Body = msg->Body; (Body->next != NULL); Body = Body->next)
+   if (msg->Body == NULL) return(FALSE);
+   for (Body = msg->Body; ; Body = Body->next)
    {
       if (strncmp(Body->Line, "-- ", 3) == 0) return(TRUE);
+      if (Body->next == NULL) break;
    }
 
    if ((sig = fopen(sigfile, "r")) == NULL)
@@ -76,12 +78,14 @@ BOOL AddSig(MsgIndexType *msg, char User[255+1])
    sprintf(buff, "\n-- ");
    Body = AddBodyAfter(Body, buff);
 
-   while (fgets(buff, 500, sig) != NULL)
+   while ((Body != NULL) && (fgets(buff, sizeof(buff), sig) != NULL))
    {
-      buff[strlen(buff)-1] = 0;
+      n = strlen(buff);
+      if ((n > 0) && (buff[n-1] == '\n')) buff[n-1] = 0;
       Body = AddBodyAfter(Body, buff);
    }
-   return(TRUE);
+   fclose(sig);
+   return(Body != NULL);
 }
 
 
