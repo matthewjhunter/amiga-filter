@@ -463,11 +463,12 @@ char *FindDest(struct Email msg, char *Default, struct ConfigList *first)
 #endif
    for (curr = first; (curr != NULL); curr = curr->next)
    {
-      char tokbuf[500];
+      // ParsePatternNoCase() needs 2 * strlen(pattern) + 2 bytes
+      char tokbuf[2 * sizeof(curr->Pattern) + 2];
 
       if (strlen(curr->Pattern) == 0) break;
       if (strlen(curr->Action) == 0) break;
-      if (ParsePatternNoCase(curr->Pattern, tokbuf, 499) == -1)
+      if (ParsePatternNoCase(curr->Pattern, tokbuf, sizeof(tokbuf)) == -1)
       {
          fprintf(stderr, "Pattern: %s\nDest: %s\n", curr->Pattern, curr->Action);
          fprintf(stderr, "Pattern parse failure in filter.cfg\n");
