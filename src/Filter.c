@@ -428,18 +428,17 @@ void MoveMsg(struct Email msg, char *DDir)
    if ((outfile = fopen(outname, "a")) == NULL)
    {
       fprintf(stderr, "Error opening %s, exiting.\n", outname);
-      exit(0);
+      exit(20);
    }
 //   if (!FromWB) printf("Writing message to %s\n", outname);
 //   fprintf(outfile, "\n"); Removed leading linefeed; hopefully won't have problems
 
-   for (counter = 1; counter < msglength; counter++)
+   for (counter = 0; counter < msglength; counter++)
    {
       fputc(fgetc(mailbox), outfile);
    }
    fclose(outfile);
 
-   fprintf(outfile, "\n\n\n");
    fseek(mailbox,temp,SEEK_SET);
 }
 
