@@ -626,45 +626,53 @@ struct ConfigList *LoadConfigList(char *CFGName)
    char buff[500];
    struct ConfigList *curr,*first;
 
-   first = malloc(sizeof(struct ConfigList));
+   if ((config = Open(CFGName, MODE_OLDFILE)) == 0) return(NULL);
+
+   if ((first = malloc(sizeof(struct ConfigList))) == NULL)
+   {
+      Close(config);
+      return(NULL);
+   }
    first->Pattern[0] = 0;
    first->Action[0] = 0;
    first->next = NULL;
    curr = first;
 
-   if ((config = Open(CFGName, MODE_OLDFILE)) != 0)
+   while(FGets(config, buff, sizeof(buff)))
    {
-      while(FGets(config, buff, 500))
+      cleanbuff(buff);
+      if (strlen(buff) > 1)
       {
-         cleanbuff(buff);
-         if (strlen(buff) > 1)
+         if (curr->Pattern[0] == 0)
          {
-            if (curr->Pattern[0] == 0)
-            {
 #ifdef DEBUG
-               printf("Loaded pattern: %s\n", buff);
+            printf("Loaded pattern: %s\n", buff);
 #endif
-               strcpy(curr->Pattern, buff);
-            }
-            else if (curr->Action[0] == 0)
-            {
+            SetField(curr->Pattern, sizeof(curr->Pattern), buff);
+         }
+         else if (curr->Action[0] == 0)
+         {
 #ifdef DEBUG
-               printf("Loaded action: %s\n", buff);
+            printf("Loaded action: %s\n", buff);
 #endif
-               strcpy(curr->Action, buff);
-            }
-            else
+            SetField(curr->Action, sizeof(curr->Action), buff);
+         }
+         else
+         {
+            if ((curr->next = malloc(sizeof(struct ConfigList))) == NULL)
             {
-               curr->next = malloc(sizeof(struct ConfigList));
-               curr = curr->next;
-               curr->Pattern[0] = 0;
-               curr->Action[0] = 0;
-               curr->next = NULL;
-               strcpy(curr->Pattern, buff);
+               Close(config);
+               FreeConfigList(first);
+               return(NULL);
             }
-         } else continue;
+            curr = curr->next;
+            curr->Pattern[0] = 0;
+            curr->Action[0] = 0;
+            curr->next = NULL;
+            SetField(curr->Pattern, sizeof(curr->Pattern), buff);
+         }
       }
-   } else return(NULL);
+   }
    Close(config);
    return(first);
 }
@@ -721,6 +729,7 @@ BOOL SaveConfigList(char *filename, struct ConfigList *first)
    }
 
    fclose(config);
+   return(TRUE);
 }
 
 // Free the memory associated with a configlist
